@@ -1,0 +1,82 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>ThirdPersonCam</AssemblyName>
+    <Product>Third Person Cam</Product>
+    <Version>1.0.0</Version>
+    <BepInExPluginGuid>zeprus.gunfire.thirdpersoncam</BepInExPluginGuid>
+    <BepInExPluginName>Third Person Cam</BepInExPluginName>
+    <BepInExPluginVersion>1.0.0</BepInExPluginVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ThirdPersonCam</RootNamespace>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Variables">
+    <!-- Game install directory. Override with -p:GameDir=<path> or set GUNFIRE_REBORN_DIR. -->
+    <GameDir Condition="'$(GameDir)' == ''">E:\SteamLibrary\steamapps\common\Gunfire Reborn</GameDir>
+    <BepInExDir>$(GameDir)\BepInEx</BepInExDir>
+    <GameLibDir>$(BepInExDir)\interop</GameLibDir>
+    <EmberConfigDllPath Condition="'$(EmberConfigDllPath)' == '' and Exists('$(GameDir)\BepInEx\plugins\EmberConfig.dll')">$(GameDir)\BepInEx\plugins\EmberConfig.dll</EmberConfigDllPath>
+    <EmberConfigDllPath Condition="'$(EmberConfigDllPath)' == '' and Exists('$(GameDir)\BepInEx\plugins_disabled\EmberConfig.dll')">$(GameDir)\BepInEx\plugins_disabled\EmberConfig.dll</EmberConfigDllPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.*" IncludeAssets="compile" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="EmberConfig" Condition="Exists('$(EmberConfigDllPath)')">
+      <HintPath>$(EmberConfigDllPath)</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="EnsureEmberConfigDll" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(EmberConfigDllPath)')" Text="EmberConfig.dll not found. Build and deploy EmberConfig, or set EmberConfigDllPath to an existing DLL." />
+  </Target>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(GameLibDir)/Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(GameLibDir)/Il2Cppmscorlib.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(GameLibDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputModule">
+      <HintPath>$(GameLibDir)/UnityEngine.InputModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(GameLibDir)/UnityEngine.AnimationModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sirenix.Serialization">
+      <HintPath>$(GameLibDir)/Sirenix.Serialization.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Sirenix.OdinInspector.Attributes">
+      <HintPath>$(GameLibDir)/Sirenix.OdinInspector.Attributes.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="Deploy" AfterTargets="Build;Publish" Condition="'$(DeployToPlugins)' != 'false'">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)\plugins" />
+  </Target>
+
+</Project>
