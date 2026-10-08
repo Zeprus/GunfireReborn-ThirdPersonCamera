@@ -65,6 +65,10 @@
       <HintPath>$(GameLibDir)/UnityEngine.AnimationModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(GameLibDir)/UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Sirenix.Serialization">
       <HintPath>$(GameLibDir)/Sirenix.Serialization.dll</HintPath>
       <Private>False</Private>

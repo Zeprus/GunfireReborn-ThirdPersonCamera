@@ -74,7 +74,7 @@ internal sealed class CameraBoomTuner
 
         config.TargetArmLength = Plugin.CameraDistance.Value;
         config.MaxArmLength = Mathf.Max(Plugin.CameraDistance.Value, snapshot.MaxArmLength);
-        config.TargetOffset = new Vector3(Plugin.ShoulderOffsetX.Value, Plugin.CameraOffsetY.Value, Plugin.CameraOffsetZ.Value);
+        config.SocketOffset = new Vector3(Plugin.ShoulderOffsetX.Value, Plugin.CameraOffsetY.Value, Plugin.CameraOffsetZ.Value);
         config.ProbeSize = Plugin.CollisionProbeSize.Value;
         config.MinAngleX = Plugin.PitchMin.Value;
         config.MaxAngleX = Plugin.PitchMax.Value;

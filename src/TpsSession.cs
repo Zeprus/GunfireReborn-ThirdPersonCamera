@@ -78,6 +78,7 @@ internal sealed class TpsSession
 
         rig.ApplyWeaponCamState(IsTpsActive());
         FacingMode.Apply(Plugin.StrafeFacing.Value);
+        AimConverger.Apply(rig.FpsCamTransform, rig.TpsCamTransform);
 
         if (configDirty)
         {

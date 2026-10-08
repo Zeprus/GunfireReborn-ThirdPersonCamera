@@ -18,6 +18,8 @@ internal sealed class HeroRig
     private bool weaponCamDisabledByUs;
 
     internal CameraBoom? Boom { get; private set; }
+    internal Transform? TpsCamTransform => tpsCam?.transform;
+    internal Transform? FpsCamTransform { get; private set; }
 
     internal bool IsBoomActive => tpsCamBoomGo is not null && tpsCamBoomGo.activeInHierarchy;
 
@@ -36,6 +38,7 @@ internal sealed class HeroRig
 
         Boom = tpsCamBoomGo?.GetComponent<CameraBoom>();
         tpsCam = tpsCamBoomGo?.transform.Find("TPSCam")?.GetComponent<Camera>();
+        FpsCamTransform = fpsCamGo?.transform;
 
         try
         {
@@ -60,6 +63,7 @@ internal sealed class HeroRig
         fpsCamGo = null;
         Boom = null;
         tpsCam = null;
+        FpsCamTransform = null;
         weaponCam = null;
         weaponCamDisabledByUs = false;
     }
