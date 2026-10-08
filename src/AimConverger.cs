@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// Transforms aim-ray for the third-person crosshair.

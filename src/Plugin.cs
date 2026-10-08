@@ -7,7 +7,7 @@ using BepInEx.Unity.IL2CPP;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 [BepInDependency(EmberConfigGuid, BepInDependency.DependencyFlags.SoftDependency)]
@@ -50,7 +50,7 @@ public class Plugin : BasePlugin
         }
         else
         {
-            Log.LogInfo("EmberConfig not found; Third Person Cam will use BepInEx config fallback.");
+            Log.LogInfo("EmberConfig not found; Third Person Camera will use BepInEx config fallback.");
         }
 
         Log.LogInfo($"{MyPluginInfo.PLUGIN_NAME} loaded.");
@@ -96,7 +96,7 @@ public class Plugin : BasePlugin
             1.0f,
             new ConfigDescription(
                 "Lateral camera offset. Positive values look over the right shoulder.",
-                new AcceptableValueRange<float>(-1.5f, 1.5f)));
+                new AcceptableValueRange<float>(-2f, 2f)));
 
         CameraOffsetY = Config.Bind(
             "Camera",
@@ -125,7 +125,7 @@ public class Plugin : BasePlugin
         PitchMin = Config.Bind(
             "Camera",
             "PitchMin",
-            -40f,
+            -89f,
             new ConfigDescription(
                 "Minimum camera pitch angle. How far you can look up.",
                 new AcceptableValueRange<float>(-89f, 0f)));
@@ -133,7 +133,7 @@ public class Plugin : BasePlugin
         PitchMax = Config.Bind(
             "Camera",
             "PitchMax",
-            70f,
+            89f,
             new ConfigDescription(
                 "Maximum camera pitch angle. How far you can look down.",
                 new AcceptableValueRange<float>(0f, 89f)));

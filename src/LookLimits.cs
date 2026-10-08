@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// Applies the configured pitch limits to the controller's look-pitch controller.

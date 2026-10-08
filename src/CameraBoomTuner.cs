@@ -2,7 +2,7 @@ using System;
 using HeroCameraName;
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// Applies the mod's camera settings onto the hero's active

@@ -3,14 +3,14 @@ using HeroCameraName;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// Handles third-person state.
 /// </summary>
 internal sealed class TpsSession
 {
-    private const string StateKey = "ThirdPersonCam";
+    private const string StateKey = "ThirdPersonCamera";
     private const int VerifyFrames = 45;
 
     private readonly HeroRig rig = new HeroRig();

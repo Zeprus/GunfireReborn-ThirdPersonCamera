@@ -2,16 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>ThirdPersonCam</AssemblyName>
-    <Product>Third Person Cam</Product>
+    <AssemblyName>ThirdPersonCamera</AssemblyName>
+    <Product>Third Person Camera</Product>
     <Version>1.0.0</Version>
     <BepInExPluginGuid>zeprus.gunfire.thirdpersoncam</BepInExPluginGuid>
-    <BepInExPluginName>Third Person Cam</BepInExPluginName>
+    <BepInExPluginName>Third Person Camera</BepInExPluginName>
     <BepInExPluginVersion>1.0.0</BepInExPluginVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <RootNamespace>ThirdPersonCam</RootNamespace>
+    <RootNamespace>ThirdPersonCamera</RootNamespace>
     <RestoreAdditionalProjectSources>
       https://api.nuget.org/v3/index.json;
       https://nuget.bepinex.dev/v3/index.json;

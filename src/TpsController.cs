@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// Unity Component for third-person.

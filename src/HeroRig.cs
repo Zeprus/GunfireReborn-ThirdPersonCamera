@@ -2,7 +2,7 @@ using System;
 using HeroCameraName;
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// Manages the games native third-person rig.

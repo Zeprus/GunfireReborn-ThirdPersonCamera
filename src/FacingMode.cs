@@ -1,6 +1,6 @@
 using System;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// Applies the configured movement-facing mode onto the hero's

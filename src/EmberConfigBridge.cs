@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using EmberConfig.Public;
 using UnityEngine;
 
-namespace ThirdPersonCam;
+namespace ThirdPersonCamera;
 
 /// <summary>
 /// EmberConfig binding
