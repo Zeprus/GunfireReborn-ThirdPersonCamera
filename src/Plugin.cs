@@ -93,7 +93,7 @@ public class Plugin : BasePlugin
         ShoulderOffsetX = Config.Bind(
             "Camera",
             "ShoulderOffsetX",
-            0.35f,
+            1.0f,
             new ConfigDescription(
                 "Lateral camera offset. Positive values look over the right shoulder.",
                 new AcceptableValueRange<float>(-1.5f, 1.5f)));

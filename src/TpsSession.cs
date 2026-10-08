@@ -40,6 +40,8 @@ internal sealed class TpsSession
         {
             if (applied)
                 ExitTps();
+            else
+                LookLimits.CaptureBaseline();
             return;
         }
 
@@ -79,6 +81,7 @@ internal sealed class TpsSession
         rig.ApplyWeaponCamState(IsTpsActive());
         FacingMode.Apply(Plugin.StrafeFacing.Value);
         AimConverger.Apply(rig.FpsCamTransform, rig.TpsCamTransform);
+        LookLimits.Apply();
 
         if (configDirty)
         {
@@ -144,6 +147,7 @@ internal sealed class TpsSession
         finally
         {
             boomTuner.Restore(rig.Boom);
+            LookLimits.Restore();
             rig.RestoreWeaponCam();
             FacingMode.Restore();
         }
@@ -251,6 +255,7 @@ internal sealed class TpsSession
 
     private void Detach()
     {
+        LookLimits.Restore();
         applied = false;
         weAddedKey = false;
         heroObj = null;
