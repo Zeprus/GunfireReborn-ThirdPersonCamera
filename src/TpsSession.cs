@@ -82,6 +82,7 @@ internal sealed class TpsSession
         FacingMode.Apply(Plugin.StrafeFacing.Value);
         AimConverger.Apply(rig.FpsCamTransform, rig.TpsCamTransform);
         LookLimits.Apply();
+        MoveAnimDriver.Apply();
 
         if (configDirty)
         {
@@ -95,6 +96,7 @@ internal sealed class TpsSession
     {
         heroPtr = heroObj!.Pointer;
         rig.Bind(heroTran);
+        MoveAnimDriver.Bind(heroTran);
         applied = true;
 
         try
@@ -262,5 +264,6 @@ internal sealed class TpsSession
         heroTran = null;
         heroPtr = IntPtr.Zero;
         rig.Clear();
+        MoveAnimDriver.Clear();
     }
 }

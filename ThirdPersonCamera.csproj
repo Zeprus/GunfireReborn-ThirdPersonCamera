@@ -5,7 +5,7 @@
     <AssemblyName>ThirdPersonCamera</AssemblyName>
     <Product>Third Person Camera</Product>
     <Version>1.0.0</Version>
-    <BepInExPluginGuid>zeprus.gunfire.thirdpersoncam</BepInExPluginGuid>
+    <BepInExPluginGuid>zeprus.gunfire.thirdpersoncamera</BepInExPluginGuid>
     <BepInExPluginName>Third Person Camera</BepInExPluginName>
     <BepInExPluginVersion>1.0.0</BepInExPluginVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

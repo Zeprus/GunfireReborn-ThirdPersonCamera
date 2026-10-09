@@ -40,6 +40,15 @@ public class Plugin : BasePlugin
         ClassInjector.RegisterTypeInIl2Cpp<TpsController>();
         var controller = AddComponent<TpsController>();
 
+        try
+        {
+            HarmonyLib.Harmony.CreateAndPatchAll(typeof(MoveParamGuard));
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning($"Harmony patch failed: {ex.Message}");
+        }
+
         Config.SettingChanged += (_, _) => controller.NotifyConfigChanged();
 
         EmberConfigPresent = IL2CPPChainloader.Instance?.Plugins.ContainsKey(EmberConfigGuid) ?? false;
