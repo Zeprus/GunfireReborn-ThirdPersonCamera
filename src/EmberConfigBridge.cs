@@ -18,15 +18,15 @@ internal static class EmberConfigBridge
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     internal static void RegisterAll(TpsController controller)
     {
-        RegisterEnabled(controller);
+        RegisterEnabled();
         RegisterStrafeFacing();
         RegisterToggleKeybind(controller);
-        RegisterCameraSettings(controller);
+        RegisterCameraSettings();
         RegisterAdvancedSettings();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    private static void RegisterEnabled(TpsController controller)
+    private static void RegisterEnabled()
     {
         var entry = Plugin.Enabled;
 
@@ -82,10 +82,8 @@ internal static class EmberConfigBridge
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    private static void RegisterCameraSettings(TpsController controller)
+    private static void RegisterCameraSettings()
     {
-        void Dirty(float _) => controller.NotifyConfigChanged();
-
         SettingsMenu.Register(Plugin.CameraDistance, new SettingOptions<float>(
             Section: Plugin.CameraDistance.Definition.Section,
             Key: Plugin.CameraDistance.Definition.Key,
@@ -95,7 +93,6 @@ internal static class EmberConfigBridge
             Tab: Tab,
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
-            OnValueChanged: Dirty,
             AcceptableValues: Plugin.CameraDistance.Description?.AcceptableValues));
 
         SettingsMenu.Register(Plugin.ShoulderOffsetX, new SettingOptions<float>(
@@ -107,7 +104,6 @@ internal static class EmberConfigBridge
             Tab: Tab,
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
-            OnValueChanged: Dirty,
             AcceptableValues: Plugin.ShoulderOffsetX.Description?.AcceptableValues));
 
         SettingsMenu.Register(Plugin.CameraOffsetY, new SettingOptions<float>(
@@ -119,7 +115,6 @@ internal static class EmberConfigBridge
             Tab: Tab,
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
-            OnValueChanged: Dirty,
             AcceptableValues: Plugin.CameraOffsetY.Description?.AcceptableValues));
 
         SettingsMenu.Register(Plugin.CameraOffsetZ, new SettingOptions<float>(
@@ -131,7 +126,6 @@ internal static class EmberConfigBridge
             Tab: Tab,
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
-            OnValueChanged: Dirty,
             AcceptableValues: Plugin.CameraOffsetZ.Description?.AcceptableValues));
 
         SettingsMenu.Register(Plugin.CollisionProbeSize, new SettingOptions<float>(
@@ -143,8 +137,18 @@ internal static class EmberConfigBridge
             Tab: Tab,
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
-            OnValueChanged: Dirty,
             AcceptableValues: Plugin.CollisionProbeSize.Description?.AcceptableValues));
+
+        SettingsMenu.Register(Plugin.CameraSensitivityMultiplier, new SettingOptions<float>(
+            Section: Plugin.CameraSensitivityMultiplier.Definition.Section,
+            Key: Plugin.CameraSensitivityMultiplier.Definition.Key,
+            DefaultValue: Plugin.CameraSensitivityMultiplier.Value,
+            Description: Plugin.CameraSensitivityMultiplier.Description?.Description ?? "Multiplier applied to the third-person camera sensitivity.",
+            Label: "Camera Sensitivity Multiplier",
+            Tab: Tab,
+            Group: CameraGroup,
+            ModName: MyPluginInfo.PLUGIN_NAME,
+            AcceptableValues: Plugin.CameraSensitivityMultiplier.Description?.AcceptableValues));
 
         SettingsMenu.Register(Plugin.PitchMin, new SettingOptions<float>(
             Section: Plugin.PitchMin.Definition.Section,
@@ -155,7 +159,6 @@ internal static class EmberConfigBridge
             Tab: Tab,
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
-            OnValueChanged: Dirty,
             AcceptableValues: Plugin.PitchMin.Description?.AcceptableValues));
 
         SettingsMenu.Register(Plugin.PitchMax, new SettingOptions<float>(
@@ -167,7 +170,6 @@ internal static class EmberConfigBridge
             Tab: Tab,
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
-            OnValueChanged: Dirty,
             AcceptableValues: Plugin.PitchMax.Description?.AcceptableValues));
     }
 

@@ -14,6 +14,11 @@ internal static class MoveAnimDriver
 
     private static Animator? animator;
 
+    /// <summary>
+    /// Set by the session while the game owns the camera (cutscene, revive)
+    /// </summary>
+    internal static bool Suspended;
+
     internal static void Bind(Transform? heroTran)
     {
         animator = heroTran?.Find("TPSModel")?.GetComponent<Animator>();
@@ -22,6 +27,7 @@ internal static class MoveAnimDriver
     internal static void Clear()
     {
         animator = null;
+        Suspended = false;
     }
 
     /// <summary>
@@ -30,7 +36,7 @@ internal static class MoveAnimDriver
     internal static void Apply()
     {
         var anim = animator;
-        if (anim is null)
+        if (anim is null || Suspended)
             return;
 
         try

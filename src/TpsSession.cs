@@ -11,37 +11,67 @@ namespace ThirdPersonCamera;
 internal sealed class TpsSession
 {
     private const string StateKey = "ThirdPersonCamera";
-    private const int VerifyFrames = 45;
+    private const int SettleFrames = 45;
+    private const int ReassertKickFrames = 30;
+    private const int PitchResetFrames = 3;
 
     private readonly HeroRig rig = new HeroRig();
     private readonly CameraBoomTuner boomTuner = new CameraBoomTuner();
 
     private bool applied;
-    private bool weAddedKey;
-    private int verifyCountdown;
-    private bool nativeTransitionFailed;
-    private bool configDirty = true;
+    private int settleCountdown;
+    private int reassertIdleFrames;
+    private int pitchResetCountdown;
+    private bool suppressed;
+    private bool rebindPending;
 
     private IntPtr heroPtr;
     private NewPlayerObject? heroObj;
     private Transform? heroTran;
 
     /// <summary>
-    /// Marks the boom configuration for re-application.
-    /// </summary>
-    internal void MarkConfigDirty() => configDirty = true;
-
-    /// <summary>
     /// Checks if third-person should be applied.
     /// </summary>
     internal void OnUpdate()
     {
+        var isSuppressed = Suppressed();
+        if (isSuppressed && !suppressed)
+            LookLimits.Restore();
+        else if (!isSuppressed && suppressed)
+        {
+            rebindPending = true;
+            pitchResetCountdown = PitchResetFrames;
+        }
+        suppressed = isSuppressed;
+        MoveAnimDriver.Suspended = suppressed;
+
         if (!Plugin.Enabled.Value)
         {
             if (applied)
-                ExitTps();
-            else
+            {
+                if (suppressed)
+                {
+                    try
+                    {
+                        if (heroObj is not null)
+                            heroObj.ChangeTpsState(false, StateKey);
+                        HeroCameraManager.TarCamMode = CameraMode.FPS;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                else
+                {
+                    ExitTps();
+                }
+            }
+            else if (!suppressed)
+            {
                 LookLimits.CaptureBaseline();
+                SensitivityTuner.CaptureBaseline();
+            }
+
             return;
         }
 
@@ -53,18 +83,45 @@ internal sealed class TpsSession
                 return;
         }
 
-        if (Suppressed())
+        if (suppressed)
+        {
+            settleCountdown = SettleFrames;
             return;
+        }
+
+        if (pitchResetCountdown > 0)
+        {
+            pitchResetCountdown--;
+            LookLimits.ResetPitch();
+        }
+
+        if (settleCountdown > 0)
+        {
+            settleCountdown--;
+            return;
+        }
 
         heroObj = hero;
         heroTran = CharacterMotionManager.HeroTran ?? heroObj.gameTrans;
         if (heroTran is null)
             return;
 
+        if (rebindPending)
+        {
+            rebindPending = false;
+            if (applied)
+            {
+                rig.Bind(heroTran);
+                MoveAnimDriver.Bind(heroTran);
+            }
+        }
+
         if (!applied)
             EnterTps();
         else if (!IsTpsActive())
             ReassertTps();
+        else
+            reassertIdleFrames = 0;
     }
 
     /// <summary>
@@ -72,11 +129,8 @@ internal sealed class TpsSession
     /// </summary>
     internal void OnLateUpdate()
     {
-        if (!applied)
+        if (!applied || suppressed)
             return;
-
-        if (verifyCountdown > 0 && --verifyCountdown == 0)
-            VerifyEnterResult();
 
         rig.ApplyWeaponCamState(IsTpsActive());
         FacingMode.Apply(Plugin.StrafeFacing.Value);
@@ -84,12 +138,8 @@ internal sealed class TpsSession
         LookLimits.Apply();
         MoveAnimDriver.Apply();
 
-        if (configDirty)
-        {
-            configDirty = false;
-            boomTuner.MarkDirty();
-        }
         boomTuner.Apply(rig.Boom);
+        SensitivityTuner.Apply();
     }
 
     private void EnterTps()
@@ -101,44 +151,25 @@ internal sealed class TpsSession
 
         try
         {
-            if (!weAddedKey)
-            {
-                heroObj.ChangeTpsState(true, StateKey);
-                weAddedKey = true;
-            }
-
-            if (nativeTransitionFailed)
-            {
-                rig.Activate();
-            }
-            else
-            {
-                HeroCameraManager.ChangeToTpsMode(TpsMode.FREE, 0f);
-                verifyCountdown = VerifyFrames;
-            }
+            heroObj.ChangeTpsState(true, StateKey);
+            HeroCameraManager.ChangeToTpsMode(TpsMode.FREE, 0f);
         }
         catch (Exception ex)
         {
-            Plugin.Log?.LogWarning($"Native TPS enter failed ({ex.Message}); using direct activation.");
-            nativeTransitionFailed = true;
-            rig.Activate();
+            Plugin.Log?.LogWarning($"Native TPS enter failed: {ex.Message}");
         }
     }
 
     private void ExitTps()
     {
         applied = false;
-        verifyCountdown = 0;
 
         try
         {
-            if (weAddedKey && heroObj is not null)
-            {
+            if (heroObj is not null)
                 heroObj.ChangeTpsState(false, StateKey);
-            }
-            weAddedKey = false;
 
-            if (nativeTransitionFailed || !TryNativeFpsExit())
+            if (!TryNativeFpsExit())
                 rig.Deactivate();
         }
         catch (Exception ex)
@@ -149,6 +180,7 @@ internal sealed class TpsSession
         finally
         {
             boomTuner.Restore(rig.Boom);
+            SensitivityTuner.Restore();
             LookLimits.Restore();
             rig.RestoreWeaponCam();
             FacingMode.Restore();
@@ -161,35 +193,25 @@ internal sealed class TpsSession
         {
             if (heroObj is not null && !heroObj.IsMoreTpsState())
             {
-                weAddedKey = false;
                 applied = false;
                 EnterTps();
                 return;
             }
 
-            if (nativeTransitionFailed)
-                rig.Activate();
-            else
-                HeroCameraManager.ChangeToTpsMode(TpsMode.FREE, 0f);
+            var normalCs = HeroCameraManager.CSObject?.TryCast<NormalCS>();
+            if (normalCs is not null && (normalCs.isChanging || normalCs.tarCamMode == CameraMode.TPS))
+                return;
+
+            if (++reassertIdleFrames < ReassertKickFrames)
+                return;
+            reassertIdleFrames = 0;
+
+            HeroCameraManager.ChangeToTpsMode(TpsMode.FREE, 0f);
         }
         catch (Exception ex)
         {
             Plugin.Log?.LogWarning($"TPS re-assert failed: {ex.Message}");
         }
-    }
-
-    private void VerifyEnterResult()
-    {
-        if (IsTpsActive())
-            return;
-
-        if (!nativeTransitionFailed)
-        {
-            Plugin.Log?.LogWarning("Native TPS transition did not take effect; activating rig objects directly.");
-            nativeTransitionFailed = true;
-        }
-
-        rig.Activate();
     }
 
     private bool IsTpsActive()
@@ -209,40 +231,17 @@ internal sealed class TpsSession
     {
         try
         {
-            if (HeroCameraManager.InCG)
-                return true;
-
-            var data = HeroCameraManager.CSDataObj;
-            if (data is not null && data.IsLookOpen)
-                return true;
-
-            var watch = CameraManager.WatchCamera;
-            if (watch is not null && watch.isActiveAndEnabled)
-                return true;
+            var cs = HeroCameraManager.CSObject;
+            return cs is null || cs.TryCast<NormalCS>() is null;
         }
         catch (Exception)
         {
+            return false;
         }
-
-        return false;
     }
 
     private bool TryNativeFpsExit()
     {
-        try
-        {
-            var normalCs = HeroCameraManager.CSObject?.TryCast<NormalCS>();
-            if (normalCs is not null)
-            {
-                normalCs.ChangeToFpsMode(0f);
-                return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log?.LogWarning($"NormalCS.ChangeToFpsMode failed: {ex.Message}");
-        }
-
         try
         {
             HeroCameraManager.ChangeToFpsMode(new AnimationCurve());
@@ -257,9 +256,21 @@ internal sealed class TpsSession
 
     private void Detach()
     {
+        try
+        {
+            if (heroObj is not null)
+                heroObj.ChangeTpsState(false, StateKey);
+        }
+        catch (Exception)
+        {
+        }
+
         LookLimits.Restore();
+        LookLimits.Clear();
+        SensitivityTuner.Restore();
         applied = false;
-        weAddedKey = false;
+        rebindPending = false;
+        settleCountdown = SettleFrames;
         heroObj = null;
         heroTran = null;
         heroPtr = IntPtr.Zero;

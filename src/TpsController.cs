@@ -28,11 +28,6 @@ public class TpsController : MonoBehaviour
         Plugin.Log?.LogInfo($"Third person {(Plugin.Enabled.Value ? "enabled" : "disabled")}");
     }
 
-    /// <summary>
-    /// Flags live config values for re-application on the next frame.
-    /// </summary>
-    internal void NotifyConfigChanged() => session.MarkConfigDirty();
-
     private void Update()
     {
         if (!Plugin.EmberConfigPresent &&

@@ -23,19 +23,13 @@ internal sealed class CameraBoomTuner
         public bool DoCollisionTest;
     }
 
-    private bool dirty = true;
     private bool hasSnapshot;
     private IntPtr boomPtr;
     private Snapshot snapshot;
 
     /// <summary>
-    /// Flags the configuration for re-application on the next <see cref="Apply"/>.
-    /// </summary>
-    internal void MarkDirty() => dirty = true;
-
-    /// <summary>
     /// Writes the mod's camera settings onto <paramref name="boom"/>'s active
-    /// config if anything changed
+    /// config every frame
     /// </summary>
     internal void Apply(CameraBoom? boom)
     {
@@ -45,11 +39,7 @@ internal sealed class CameraBoomTuner
             // boom object was recreated, delete old snapshot
             boomPtr = ptr;
             hasSnapshot = false;
-            dirty = true;
         }
-
-        if (!dirty)
-            return;
 
         var config = ResolveConfig(boom);
         if (config is null)
@@ -80,8 +70,6 @@ internal sealed class CameraBoomTuner
         config.MaxAngleX = Plugin.PitchMax.Value;
         // avoid yaw drift
         config.FocusSpeed = 0f;
-
-        dirty = false;
     }
 
     /// <summary>
@@ -111,16 +99,6 @@ internal sealed class CameraBoomTuner
     {
         if (boom is null)
             return null;
-
-        try
-        {
-            var config = boom.GetConfig(TpsMode.FREE);
-            if (config is not null)
-                return config;
-        }
-        catch (Exception)
-        {
-        }
 
         try
         {

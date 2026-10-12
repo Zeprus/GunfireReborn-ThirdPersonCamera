@@ -13,12 +13,11 @@ internal sealed class HeroRig
     private GameObject? tpsModelGo;
     private GameObject? npcTriggerGo;
     private GameObject? fpsCamGo;
-    private Camera? tpsCam;
     private Camera? weaponCam;
     private bool weaponCamDisabledByUs;
 
     internal CameraBoom? Boom { get; private set; }
-    internal Transform? TpsCamTransform => tpsCam?.transform;
+    internal Transform? TpsCamTransform { get; private set; }
     internal Transform? FpsCamTransform { get; private set; }
 
     internal bool IsBoomActive => tpsCamBoomGo is not null && tpsCamBoomGo.activeInHierarchy;
@@ -37,7 +36,7 @@ internal sealed class HeroRig
         fpsCamGo = heroTran.Find("FPSCam")?.gameObject;
 
         Boom = tpsCamBoomGo?.GetComponent<CameraBoom>();
-        tpsCam = tpsCamBoomGo?.transform.Find("TPSCam")?.GetComponent<Camera>();
+        TpsCamTransform = tpsCamBoomGo?.transform.Find("TPSCam");
         FpsCamTransform = fpsCamGo?.transform;
 
         try
@@ -62,38 +61,15 @@ internal sealed class HeroRig
         npcTriggerGo = null;
         fpsCamGo = null;
         Boom = null;
-        tpsCam = null;
+        TpsCamTransform = null;
         FpsCamTransform = null;
         weaponCam = null;
         weaponCamDisabledByUs = false;
     }
 
     /// <summary>
-    /// Activates the rig GameObjects and registers TPSCam with CameraManager
+    /// Last-resort rig shutdown when the native FPS transition throws.
     /// </summary>
-    internal void Activate()
-    {
-        try
-        {
-            if (tpsCamBoomGo is not null && !tpsCamBoomGo.activeSelf)
-                tpsCamBoomGo.SetActive(true);
-            if (tpsModelGo is not null && !tpsModelGo.activeSelf)
-                tpsModelGo.SetActive(true);
-            if (npcTriggerGo is not null && !npcTriggerGo.activeSelf)
-                npcTriggerGo.SetActive(true);
-
-            if (tpsCam is not null)
-            {
-                CameraManager.TpsCameraCom = tpsCam;
-                CameraManager.CurCameraMode = CameraMode.TPS;
-            }
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log?.LogWarning($"Fallback TPS activation failed: {ex.Message}");
-        }
-    }
-
     internal void Deactivate()
     {
         try

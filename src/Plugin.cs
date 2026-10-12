@@ -27,6 +27,7 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> CameraOffsetY { get; private set; } = null!;
     internal static ConfigEntry<float> CameraOffsetZ { get; private set; } = null!;
     internal static ConfigEntry<float> CollisionProbeSize { get; private set; } = null!;
+    internal static ConfigEntry<float> CameraSensitivityMultiplier { get; private set; } = null!;
     internal static ConfigEntry<float> PitchMin { get; private set; } = null!;
     internal static ConfigEntry<float> PitchMax { get; private set; } = null!;
     internal static ConfigEntry<bool> HideFirstPersonWeapon { get; private set; } = null!;
@@ -49,7 +50,6 @@ public class Plugin : BasePlugin
             Log.LogWarning($"Harmony patch failed: {ex.Message}");
         }
 
-        Config.SettingChanged += (_, _) => controller.NotifyConfigChanged();
 
         EmberConfigPresent = IL2CPPChainloader.Instance?.Plugins.ContainsKey(EmberConfigGuid) ?? false;
 
@@ -130,6 +130,14 @@ public class Plugin : BasePlugin
             new ConfigDescription(
                 "Camera collision distance.",
                 new AcceptableValueRange<float>(0f, 1f)));
+
+        CameraSensitivityMultiplier = Config.Bind(
+            "Camera",
+            "CameraSensitivityMultiplier",
+            1.0f,
+            new ConfigDescription(
+                "Multiplier applied to the third-person camera sensitivity.",
+                new AcceptableValueRange<float>(0.1f, 4f)));
 
         PitchMin = Config.Bind(
             "Camera",

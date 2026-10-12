@@ -73,10 +73,6 @@
       <HintPath>$(GameLibDir)/Sirenix.Serialization.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Sirenix.OdinInspector.Attributes">
-      <HintPath>$(GameLibDir)/Sirenix.OdinInspector.Attributes.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
 
   <Target Name="Deploy" AfterTargets="Build;Publish" Condition="'$(DeployToPlugins)' != 'false'">
