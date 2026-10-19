@@ -114,10 +114,32 @@ internal static class SensitivityTuner
         }
     }
 
+    /// <summary>
+    /// Clears the cached input objects and baseline.
+    /// </summary>
+    internal static void Clear()
+    {
+        logic = null;
+        pad = null;
+        hasBaseline = false;
+    }
+
     private static bool Resolve()
     {
         if (pad is not null && logic is not null)
-            return true;
+        {
+            try
+            {
+                if (logic.gameObject is not null && pad.gameObject is not null)
+                    return true;
+            }
+            catch (Exception)
+            {
+            }
+
+            logic = null;
+            pad = null;
+        }
 
         logic = UnityEngine.Object.FindObjectOfType<JoystickTouch_logic>();
         if (logic is null)

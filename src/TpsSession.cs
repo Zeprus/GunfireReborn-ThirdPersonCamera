@@ -278,7 +278,10 @@ internal sealed class TpsSession
     {
         try
         {
-            return !HeroCameraManager.InNormal();
+            if (!HeroCameraManager.InNormal())
+                return true;
+            var fd = CharacterMotionManager.HeroObj?.FakerDeadCom;
+            return fd is not null && fd.IsFakerDead;
         }
         catch (Exception)
         {
@@ -334,6 +337,7 @@ internal sealed class TpsSession
         LookLimits.Restore();
         LookLimits.Clear();
         SensitivityTuner.Restore();
+        SensitivityTuner.Clear();
         applied = false;
         rebindPending = false;
         pitchResetPending = false;
