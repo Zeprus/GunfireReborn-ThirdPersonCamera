@@ -28,9 +28,9 @@ public class Plugin : BasePlugin
     internal static ConfigEntry<float> CameraOffsetZ { get; private set; } = null!;
     internal static ConfigEntry<float> CollisionProbeSize { get; private set; } = null!;
     internal static ConfigEntry<float> CameraSensitivityMultiplier { get; private set; } = null!;
+    internal static ConfigEntry<float> CameraTransitionTime { get; private set; } = null!;
     internal static ConfigEntry<float> PitchMin { get; private set; } = null!;
     internal static ConfigEntry<float> PitchMax { get; private set; } = null!;
-    internal static ConfigEntry<bool> HideFirstPersonWeapon { get; private set; } = null!;
 
     public override void Load()
     {
@@ -102,7 +102,7 @@ public class Plugin : BasePlugin
         ShoulderOffsetX = Config.Bind(
             "Camera",
             "ShoulderOffsetX",
-            1.0f,
+            0.75f,
             new ConfigDescription(
                 "Lateral camera offset. Positive values look over the right shoulder.",
                 new AcceptableValueRange<float>(-2f, 2f)));
@@ -110,7 +110,7 @@ public class Plugin : BasePlugin
         CameraOffsetY = Config.Bind(
             "Camera",
             "CameraOffsetY",
-            0f,
+            0.25f,
             new ConfigDescription(
                 "Vertical camera offset relative to the boom pivot.",
                 new AcceptableValueRange<float>(-1.5f, 1.5f)));
@@ -136,8 +136,16 @@ public class Plugin : BasePlugin
             "CameraSensitivityMultiplier",
             1.0f,
             new ConfigDescription(
-                "Multiplier applied to the third-person camera sensitivity.",
+                "Third-person sensitivity relative to first-person. 1.0 matches your FPS sensitivity.",
                 new AcceptableValueRange<float>(0.1f, 4f)));
+
+        CameraTransitionTime = Config.Bind(
+            "Camera",
+            "CameraTransitionTime",
+            0.5f,
+            new ConfigDescription(
+                "Seconds for the camera to blend when entering or leaving third-person. 0 switches instantly.",
+                new AcceptableValueRange<float>(0f, 2f)));
 
         PitchMin = Config.Bind(
             "Camera",
@@ -154,12 +162,6 @@ public class Plugin : BasePlugin
             new ConfigDescription(
                 "Maximum camera pitch angle. How far you can look down.",
                 new AcceptableValueRange<float>(0f, 89f)));
-
-        HideFirstPersonWeapon = Config.Bind(
-            "Third Person",
-            "HideFirstPersonWeapon",
-            false,
-            "Force-disable the first-person weapon camera in third person if necessary.");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]

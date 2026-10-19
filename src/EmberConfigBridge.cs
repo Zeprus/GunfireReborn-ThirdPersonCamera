@@ -13,7 +13,6 @@ internal static class EmberConfigBridge
     private const string Tab = "Third Person";
     private const string ControlGroup = "Controls";
     private const string CameraGroup = "Camera";
-    private const string AdvancedGroup = "Advanced";
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     internal static void RegisterAll(TpsController controller)
@@ -22,7 +21,6 @@ internal static class EmberConfigBridge
         RegisterStrafeFacing();
         RegisterToggleKeybind(controller);
         RegisterCameraSettings();
-        RegisterAdvancedSettings();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
@@ -150,6 +148,17 @@ internal static class EmberConfigBridge
             ModName: MyPluginInfo.PLUGIN_NAME,
             AcceptableValues: Plugin.CameraSensitivityMultiplier.Description?.AcceptableValues));
 
+        SettingsMenu.Register(Plugin.CameraTransitionTime, new SettingOptions<float>(
+            Section: Plugin.CameraTransitionTime.Definition.Section,
+            Key: Plugin.CameraTransitionTime.Definition.Key,
+            DefaultValue: Plugin.CameraTransitionTime.Value,
+            Description: Plugin.CameraTransitionTime.Description?.Description ?? "Camera blend time when toggling third-person.",
+            Label: "Transition Time",
+            Tab: Tab,
+            Group: CameraGroup,
+            ModName: MyPluginInfo.PLUGIN_NAME,
+            AcceptableValues: Plugin.CameraTransitionTime.Description?.AcceptableValues));
+
         SettingsMenu.Register(Plugin.PitchMin, new SettingOptions<float>(
             Section: Plugin.PitchMin.Definition.Section,
             Key: Plugin.PitchMin.Definition.Key,
@@ -171,19 +180,5 @@ internal static class EmberConfigBridge
             Group: CameraGroup,
             ModName: MyPluginInfo.PLUGIN_NAME,
             AcceptableValues: Plugin.PitchMax.Description?.AcceptableValues));
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    private static void RegisterAdvancedSettings()
-    {
-        SettingsMenu.Register(Plugin.HideFirstPersonWeapon, new SettingOptions<bool>(
-            Section: Plugin.HideFirstPersonWeapon.Definition.Section,
-            Key: Plugin.HideFirstPersonWeapon.Definition.Key,
-            DefaultValue: Plugin.HideFirstPersonWeapon.Value,
-            Description: Plugin.HideFirstPersonWeapon.Description?.Description ?? "Force-disable the first-person weapon camera in third person if necessary.",
-            Label: "Hide FP Weapon",
-            Tab: Tab,
-            Group: AdvancedGroup,
-            ModName: MyPluginInfo.PLUGIN_NAME));
     }
 }

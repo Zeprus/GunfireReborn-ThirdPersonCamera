@@ -11,42 +11,50 @@ internal sealed class HeroRig
 {
     private GameObject? tpsCamBoomGo;
     private GameObject? tpsModelGo;
-    private GameObject? npcTriggerGo;
-    private GameObject? fpsCamGo;
-    private Camera? weaponCam;
-    private bool weaponCamDisabledByUs;
 
     internal CameraBoom? Boom { get; private set; }
+    internal NormalCS? NormalCs { get; private set; }
     internal Transform? TpsCamTransform { get; private set; }
     internal Transform? FpsCamTransform { get; private set; }
 
     internal bool IsBoomActive => tpsCamBoomGo is not null && tpsCamBoomGo.activeInHierarchy;
 
     /// <summary>
-    /// Resolves the rig objects under the hero transform.
+    /// Resolves the native TPS boom, model, and camera references for the hero.
     /// </summary>
-    internal void Bind(Transform? heroTran)
+    internal void Bind(NewPlayerObject? hero)
     {
-        if (heroTran is null)
-            return;
+        Clear();
 
-        tpsCamBoomGo = heroTran.Find("TPSCamBoom")?.gameObject;
-        tpsModelGo = heroTran.Find("TPSModel")?.gameObject;
-        npcTriggerGo = heroTran.Find("NpcTrigger")?.gameObject;
-        fpsCamGo = heroTran.Find("FPSCam")?.gameObject;
-
-        Boom = tpsCamBoomGo?.GetComponent<CameraBoom>();
-        TpsCamTransform = tpsCamBoomGo?.transform.Find("TPSCam");
-        FpsCamTransform = fpsCamGo?.transform;
-
+        var heroTran = hero?.gameTrans;
         try
         {
-            weaponCam = CameraManager.WeaponCameraCom;
+            NormalCs = HeroCameraManager.CSObject?.TryCast<NormalCS>();
+            Boom = NormalCs?.tpsCamBoom;
         }
         catch (Exception)
         {
-            weaponCam = fpsCamGo?.transform.Find("WeaponCam")?.GetComponent<Camera>();
+            NormalCs = null;
+            Boom = null;
         }
+        tpsCamBoomGo = Boom?.gameObject;
+        if (tpsCamBoomGo is null)
+        {
+            tpsCamBoomGo = heroTran?.Find("TPSCamBoom")?.gameObject;
+            Boom = tpsCamBoomGo?.GetComponent<CameraBoom>();
+        }
+
+        try
+        {
+            tpsModelGo = hero?.PlayerCom?.TPSAnimator?.gameObject;
+        }
+        catch (Exception)
+        {
+            tpsModelGo = null;
+        }
+        tpsModelGo ??= heroTran?.Find("TPSModel")?.gameObject;
+
+        EnsureCameras();
 
         if (tpsCamBoomGo is null || tpsModelGo is null)
         {
@@ -54,21 +62,35 @@ internal sealed class HeroRig
         }
     }
 
+    /// <summary>
+    /// Re-resolves the camera transforms while unset — the TPS camera only exists after the first native transition.
+    /// </summary>
+    internal void EnsureCameras()
+    {
+        if (TpsCamTransform is not null && FpsCamTransform is not null)
+            return;
+        try
+        {
+            TpsCamTransform ??= CameraManager.TpsCamera;
+            FpsCamTransform ??= CameraManager.MainCamera;
+        }
+        catch (Exception)
+        {
+        }
+    }
+
     internal void Clear()
     {
         tpsCamBoomGo = null;
         tpsModelGo = null;
-        npcTriggerGo = null;
-        fpsCamGo = null;
         Boom = null;
+        NormalCs = null;
         TpsCamTransform = null;
         FpsCamTransform = null;
-        weaponCam = null;
-        weaponCamDisabledByUs = false;
     }
 
     /// <summary>
-    /// Last-resort rig shutdown when the native FPS transition throws.
+    /// Fallback rig shutdown mirroring <c>NormalCS.SetFpsState</c>.
     /// </summary>
     internal void Deactivate()
     {
@@ -78,14 +100,13 @@ internal sealed class HeroRig
                 tpsCamBoomGo.SetActive(false);
             if (tpsModelGo is not null && tpsModelGo.activeSelf)
                 tpsModelGo.SetActive(false);
-            if (npcTriggerGo is not null && npcTriggerGo.activeSelf)
-                npcTriggerGo.SetActive(false);
-
-            if (fpsCamGo is not null && !fpsCamGo.activeSelf)
-                fpsCamGo.SetActive(true);
 
             try
             {
+                if (CameraManager.MainCameraCom is { } mainCam)
+                    mainCam.enabled = true;
+                if (CameraManager.WeaponCameraCom is { } weaponCam)
+                    weaponCam.enabled = true;
                 CameraManager.CurCameraMode = CameraMode.FPS;
             }
             catch (Exception)
@@ -95,38 +116,6 @@ internal sealed class HeroRig
         catch (Exception ex)
         {
             Plugin.Log?.LogWarning($"Fallback TPS deactivation failed: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Applies <see cref="Plugin.HideFirstPersonWeapon"/>: disables the
-    /// first-person weapon viewmodel camera while third person is active and
-    /// re-enables it otherwise.
-    /// </summary>
-    internal void ApplyWeaponCamState(bool tpsActive)
-    {
-        if (weaponCam is null)
-            return;
-
-        bool shouldHide = tpsActive && Plugin.HideFirstPersonWeapon.Value;
-        if (shouldHide && weaponCam.enabled)
-        {
-            weaponCam.enabled = false;
-            weaponCamDisabledByUs = true;
-        }
-        else if (!shouldHide && weaponCamDisabledByUs && !weaponCam.enabled)
-        {
-            weaponCam.enabled = true;
-            weaponCamDisabledByUs = false;
-        }
-    }
-
-    internal void RestoreWeaponCam()
-    {
-        if (weaponCam is not null && weaponCamDisabledByUs)
-        {
-            weaponCam.enabled = true;
-            weaponCamDisabledByUs = false;
         }
     }
 }

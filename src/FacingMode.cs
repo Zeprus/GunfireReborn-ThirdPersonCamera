@@ -1,10 +1,10 @@
 using System;
+using HeroCameraName;
 
 namespace ThirdPersonCamera;
 
 /// <summary>
-/// Applies the configured movement-facing mode onto the hero's
-/// <see cref="ETCTransformCtrl"/> rotation flags.
+/// Applies the configured movement-facing mode onto the character's rotation flags.
 /// </summary>
 internal static class FacingMode
 {

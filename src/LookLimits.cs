@@ -16,11 +16,11 @@ internal static class LookLimits
     private static bool applied;
 
     /// <summary>
-    /// Samples the live clamp state while the mod is not touching it.
+    /// Samples the game's own FPS pitch limits via <see cref="ETCTransformCtrl.GetAngleLimitX"/>.
     /// </summary>
     internal static void CaptureBaseline()
     {
-        if (applied)
+        if (applied || hasBaseline)
             return;
 
         try
@@ -30,8 +30,7 @@ internal static class LookLimits
                 return;
 
             baseClamp = etc.m_isClampRotationX;
-            baseMin = etc.m_minAngleX;
-            baseMax = etc.m_maxAngleX;
+            etc.GetAngleLimitX(out baseMin, out baseMax);
             hasBaseline = true;
         }
         catch (Exception)
@@ -40,6 +39,9 @@ internal static class LookLimits
         }
     }
 
+    /// <summary>
+    /// Applies the configured pitch limits to the controller ETC each frame.
+    /// </summary>
     internal static void Apply()
     {
         try
@@ -59,6 +61,9 @@ internal static class LookLimits
         }
     }
 
+    /// <summary>
+    /// Hands the native pitch limits back via <see cref="ETCTransformCtrl.SetAngleLimitX"/>.
+    /// </summary>
     internal static void Restore()
     {
         if (!applied)
@@ -73,8 +78,7 @@ internal static class LookLimits
 
             if (hasBaseline)
             {
-                etc.m_minAngleX = baseMin;
-                etc.m_maxAngleX = baseMax;
+                etc.SetAngleLimitX(baseMin, baseMax);
                 etc.m_isClampRotationX = baseClamp;
             }
             else
@@ -89,15 +93,27 @@ internal static class LookLimits
     }
 
     /// <summary>
-    /// Resets pitch to level after a cutscene or revive.
+    /// Resets controller pitch to level after a cutscene or revive.
     /// </summary>
     internal static void ResetPitch()
     {
         try
         {
-            var t = Resolve()?.transform;
-            if (t is null)
+            var etc = Resolve();
+            if (etc?.transform is not { } t)
                 return;
+
+            etc.m_LastVerticalValue = 0f;
+            try
+            {
+                if (ETCTransformCtrl.ControllerPitchETCCtrl is { } pitchEtc && !ReferenceEquals(pitchEtc, etc))
+                    pitchEtc.m_LastVerticalValue = 0f;
+                if (ETCTransformCtrl.ControllerETCCtrl is { } ctrlEtc && !ReferenceEquals(ctrlEtc, etc))
+                    ctrlEtc.m_LastVerticalValue = 0f;
+            }
+            catch (Exception)
+            {
+            }
 
             var e = t.localEulerAngles;
             t.localEulerAngles = new Vector3(0f, e.y, e.z);
@@ -114,6 +130,60 @@ internal static class LookLimits
     }
 
     /// <summary>
+    /// Seeds the controller pitch on TPS entry so the camera continues the FPS look direction.
+    /// </summary>
+    internal static void SeedPitch(float pitchDeg, CameraBoom? boom)
+    {
+        try
+        {
+            WritePitch(Resolve(), pitchDeg);
+            try
+            {
+                var other = ETCTransformCtrl.ControllerPitchETCCtrl;
+                if (!ReferenceEquals(other, pitchCtrl))
+                    WritePitch(other, pitchDeg);
+            }
+            catch (Exception)
+            {
+            }
+            try { WriteEuler(HeroCtrlMgr.Controller, pitchDeg); } catch (Exception) { }
+            try { WriteEuler(boom?.parentEtcTranCtrl?.transform, pitchDeg); } catch (Exception) { }
+        }
+        catch (Exception)
+        {
+            pitchCtrl = null;
+        }
+    }
+
+    /// <summary>
+    /// Clears the ETC's queued rotation delta and writes pitch on its transform.
+    /// </summary>
+    private static void WritePitch(ETCTransformCtrl? etc, float pitchDeg)
+    {
+        if (etc is null)
+            return;
+        try
+        {
+            etc.ClearRotateVector("");
+            WriteEuler(etc.transform, pitchDeg);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Sets a transform's local pitch, preserving yaw and roll.
+    /// </summary>
+    private static void WriteEuler(Transform? t, float pitchDeg)
+    {
+        if (t is null)
+            return;
+        var e = t.localEulerAngles;
+        t.localEulerAngles = new Vector3(pitchDeg, e.y, e.z);
+    }
+
+    /// <summary>
     /// Clears the cached controller and baseline
     /// </summary>
     internal static void Clear()
@@ -123,6 +193,9 @@ internal static class LookLimits
         hasBaseline = false;
     }
 
+    /// <summary>
+    /// Resolves the controller's ETC component, with a hierarchy fallback.
+    /// </summary>
     private static ETCTransformCtrl? Resolve()
     {
         if (pitchCtrl is not null)
@@ -139,8 +212,21 @@ internal static class LookLimits
             pitchCtrl = null;
         }
 
-        var go = GameObject.Find("PlayerControllerPitch/PlayerController");
-        pitchCtrl = go?.GetComponent<ETCTransformCtrl>();
+        try
+        {
+            pitchCtrl = ETCTransformCtrl.ControllerETCCtrl;
+        }
+        catch (Exception)
+        {
+            pitchCtrl = null;
+        }
+
+        if (pitchCtrl is null)
+        {
+            var go = GameObject.Find("PlayerControllerPitch/PlayerController");
+            pitchCtrl = go?.GetComponent<ETCTransformCtrl>();
+        }
+
         return pitchCtrl;
     }
 }

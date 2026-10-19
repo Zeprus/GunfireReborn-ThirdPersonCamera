@@ -1,12 +1,12 @@
 using System;
+using System.Collections.Generic;
 using HeroCameraName;
 using UnityEngine;
 
 namespace ThirdPersonCamera;
 
 /// <summary>
-/// Applies the mod's camera settings onto the hero's active
-/// <see cref="CameraBoomConfig"/>
+/// Writes the mod's camera settings onto the active <see cref="CameraBoomConfig"/>.
 /// </summary>
 internal sealed class CameraBoomTuner
 {
@@ -20,34 +20,43 @@ internal sealed class CameraBoomTuner
         public float MinAngleX;
         public float MaxAngleX;
         public float FocusSpeed;
+        public bool UseDefaultAngleX;
         public bool DoCollisionTest;
     }
 
-    private bool hasSnapshot;
-    private IntPtr boomPtr;
-    private Snapshot snapshot;
+    private readonly Dictionary<IntPtr, (CameraBoomConfig config, Snapshot snapshot)> snapshots = new();
+    private float offsetBlend;
 
     /// <summary>
-    /// Writes the mod's camera settings onto <paramref name="boom"/>'s active
-    /// config every frame
+    /// Writes the mod's camera settings onto the active config each frame.
     /// </summary>
-    internal void Apply(CameraBoom? boom)
+    internal void Apply(CameraBoom? boom, NormalCS? normalCs, bool skipArm = false, bool exitBlend = false)
     {
-        var ptr = boom?.Pointer ?? IntPtr.Zero;
-        if (ptr != boomPtr)
-        {
-            // boom object was recreated, delete old snapshot
-            boomPtr = ptr;
-            hasSnapshot = false;
-        }
-
         var config = ResolveConfig(boom);
         if (config is null)
             return;
 
-        if (!hasSnapshot)
+        var changing = false;
+        try
         {
-            snapshot = new Snapshot
+            if (normalCs is { isChanging: true })
+                changing = true;
+        }
+        catch (Exception)
+        {
+        }
+        var nativeBlendActive = skipArm || changing;
+
+        var targetBlend = exitBlend ? 0f : 1f;
+        var tt = Plugin.CameraTransitionTime.Value;
+        offsetBlend = tt <= 0f
+            ? targetBlend
+            : Mathf.MoveTowards(offsetBlend, targetBlend, Time.deltaTime / tt);
+
+        var ptr = config.Pointer;
+        if (!snapshots.TryGetValue(ptr, out var entry))
+        {
+            entry = (config, new Snapshot
             {
                 TargetOffset = config.TargetOffset,
                 SocketOffset = config.SocketOffset,
@@ -57,44 +66,57 @@ internal sealed class CameraBoomTuner
                 MinAngleX = config.MinAngleX,
                 MaxAngleX = config.MaxAngleX,
                 FocusSpeed = config.FocusSpeed,
+                UseDefaultAngleX = config.UseDefaultAngleX,
                 DoCollisionTest = config.DoCollisionTest,
-            };
-            hasSnapshot = true;
+            });
+            snapshots[ptr] = entry;
         }
 
-        config.TargetArmLength = Plugin.CameraDistance.Value;
-        config.MaxArmLength = Mathf.Max(Plugin.CameraDistance.Value, snapshot.MaxArmLength);
-        config.SocketOffset = new Vector3(Plugin.ShoulderOffsetX.Value, Plugin.CameraOffsetY.Value, Plugin.CameraOffsetZ.Value);
+        if (skipArm && !changing)
+            config.TargetArmLength = 0f;
+        else if (!nativeBlendActive)
+            config.TargetArmLength = Plugin.CameraDistance.Value;
+        config.MaxArmLength = Plugin.CameraDistance.Value;
+        config.SocketOffset = new Vector3(Plugin.ShoulderOffsetX.Value, Plugin.CameraOffsetY.Value, Plugin.CameraOffsetZ.Value) * offsetBlend;
         config.ProbeSize = Plugin.CollisionProbeSize.Value;
-        config.MinAngleX = Plugin.PitchMin.Value;
-        config.MaxAngleX = Plugin.PitchMax.Value;
-        // avoid yaw drift
+        config.MinAngleX = Mathf.Abs(Plugin.PitchMin.Value);
+        config.MaxAngleX = Mathf.Abs(Plugin.PitchMax.Value);
+        config.UseDefaultAngleX = false;
         config.FocusSpeed = 0f;
     }
 
     /// <summary>
-    /// Restores the snapshotted values onto <paramref name="boom"/>'s active config
+    /// Restores every snapshotted config to its native values.
     /// </summary>
-    internal void Restore(CameraBoom? boom)
+    internal void Restore()
     {
-        if (!hasSnapshot)
-            return;
+        foreach (var (config, snapshot) in snapshots.Values)
+        {
+            try
+            {
+                config.TargetOffset = snapshot.TargetOffset;
+                config.SocketOffset = snapshot.SocketOffset;
+                config.TargetArmLength = snapshot.TargetArmLength;
+                config.MaxArmLength = snapshot.MaxArmLength;
+                config.ProbeSize = snapshot.ProbeSize;
+                config.MinAngleX = snapshot.MinAngleX;
+                config.MaxAngleX = snapshot.MaxAngleX;
+                config.FocusSpeed = snapshot.FocusSpeed;
+                config.UseDefaultAngleX = snapshot.UseDefaultAngleX;
+                config.DoCollisionTest = snapshot.DoCollisionTest;
+            }
+            catch (Exception)
+            {
+            }
+        }
 
-        var config = ResolveConfig(boom);
-        if (config is null)
-            return;
-
-        config.TargetOffset = snapshot.TargetOffset;
-        config.SocketOffset = snapshot.SocketOffset;
-        config.TargetArmLength = snapshot.TargetArmLength;
-        config.MaxArmLength = snapshot.MaxArmLength;
-        config.ProbeSize = snapshot.ProbeSize;
-        config.MinAngleX = snapshot.MinAngleX;
-        config.MaxAngleX = snapshot.MaxAngleX;
-        config.FocusSpeed = snapshot.FocusSpeed;
-        config.DoCollisionTest = snapshot.DoCollisionTest;
+        snapshots.Clear();
+        offsetBlend = 0f;
     }
 
+    /// <summary>
+    /// Returns the boom's active per-mode config.
+    /// </summary>
     private static CameraBoomConfig? ResolveConfig(CameraBoom? boom)
     {
         if (boom is null)

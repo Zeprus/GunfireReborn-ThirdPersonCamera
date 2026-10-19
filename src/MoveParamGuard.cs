@@ -11,8 +11,4 @@ internal static class MoveParamGuard
     [HarmonyPostfix]
     [HarmonyPatch(typeof(CharacterMotionManager), "Update")]
     private static void AfterMotionUpdate() => MoveAnimDriver.Apply();
-
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(CharacterMotionManager), "FixedUpdate")]
-    private static void AfterMotionFixedUpdate() => MoveAnimDriver.Apply();
 }

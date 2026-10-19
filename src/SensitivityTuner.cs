@@ -4,11 +4,7 @@ using UnityEngine;
 namespace ThirdPersonCamera;
 
 /// <summary>
-/// Scales the native look-axis sensitivity while third-person is active.
-/// <see cref="JoystickTouch_logic"/> stores separate sensitivity standards for
-/// first/third person and mouse/controller; the game re-derives
-/// <see cref="ETCAxis.speed"/> from them on every camera-mode switch, so the
-/// multiplier is applied to the standards rather than the derived speed.
+/// Derives third-person look sensitivity from the FPS standards times the configured multiplier.
 /// </summary>
 internal static class SensitivityTuner
 {
@@ -19,9 +15,15 @@ internal static class SensitivityTuner
     private static float baseTpsY;
     private static float baseCtrTpsX;
     private static float baseCtrTpsY;
+    private static float baseFpsX;
+    private static float baseFpsY;
+    private static float baseCtrFpsX;
+    private static float baseCtrFpsY;
+    private static float baseSpeedX;
+    private static float baseSpeedY;
 
     /// <summary>
-    /// Samples the live sensitivity standards while the mod is not touching them.
+    /// Samples the live TPS sensitivity standards while the mod is not touching them.
     /// </summary>
     internal static void CaptureBaseline()
     {
@@ -30,10 +32,21 @@ internal static class SensitivityTuner
             if (!Resolve())
                 return;
 
+            var speedX = pad!.axisX.speed;
+            var speedY = pad.axisY.speed;
+            if (speedX <= 0f || speedY <= 0f)
+                return;
+
             baseTpsX = logic!.m_axisXStandard_Tps;
             baseTpsY = logic!.m_axisYStandard_Tps;
             baseCtrTpsX = logic!.m_Ctr_axisXStandard_Tps;
             baseCtrTpsY = logic!.m_Ctr_axisYStandard_Tps;
+            baseFpsX = logic!.m_axisXStandard;
+            baseFpsY = logic!.m_axisYStandard;
+            baseCtrFpsX = logic!.m_Ctr_axisXStandard;
+            baseCtrFpsY = logic!.m_Ctr_axisYStandard;
+            baseSpeedX = speedX;
+            baseSpeedY = speedY;
             hasBaseline = true;
         }
         catch (Exception)
@@ -44,27 +57,25 @@ internal static class SensitivityTuner
     }
 
     /// <summary>
-    /// Writes the scaled standards (consumed by the game's own derivation on
-    /// mode switches) and the derived axis speeds (for live config changes).
-    /// The derived speed is recovered by matching the current speed against
-    /// every standard pair the game could have written, which keeps an
-    /// unchanged multiplier a no-op for both mouse and controller input.
+    /// Writes the FPS-derived TPS standards and the derived axis speeds each frame.
     /// </summary>
     internal static void Apply()
     {
         try
         {
+            if (!hasBaseline)
+                CaptureBaseline();
             if (!hasBaseline || !Resolve())
                 return;
 
             var mult = Plugin.CameraSensitivityMultiplier.Value;
-            logic!.m_axisXStandard_Tps = baseTpsX * mult;
-            logic!.m_axisYStandard_Tps = baseTpsY * mult;
-            logic!.m_Ctr_axisXStandard_Tps = baseCtrTpsX * mult;
-            logic!.m_Ctr_axisYStandard_Tps = baseCtrTpsY * mult;
+            logic!.m_axisXStandard_Tps = baseFpsX * mult;
+            logic!.m_axisYStandard_Tps = baseFpsY * mult;
+            logic!.m_Ctr_axisXStandard_Tps = baseCtrFpsX * mult;
+            logic!.m_Ctr_axisYStandard_Tps = baseCtrFpsY * mult;
 
-            pad!.axisX.speed = NativeSpeed(pad.axisX.speed, logic!.m_axisXStandard, logic!.m_axisXStandard_Tps, logic!.m_Ctr_axisXStandard, logic!.m_Ctr_axisXStandard_Tps);
-            pad!.axisY.speed = NativeSpeed(pad.axisY.speed, logic!.m_axisYStandard, logic!.m_axisYStandard_Tps, logic!.m_Ctr_axisYStandard, logic!.m_Ctr_axisYStandard_Tps);
+            pad!.axisX.speed = NativeSpeed(pad.axisX.speed, baseFpsX * mult, baseCtrFpsX * mult);
+            pad!.axisY.speed = NativeSpeed(pad.axisY.speed, baseFpsY * mult, baseCtrFpsY * mult);
         }
         catch (Exception)
         {
@@ -90,6 +101,11 @@ internal static class SensitivityTuner
             logic.m_axisYStandard_Tps = baseTpsY;
             logic.m_Ctr_axisXStandard_Tps = baseCtrTpsX;
             logic.m_Ctr_axisYStandard_Tps = baseCtrTpsY;
+            if (pad is not null)
+            {
+                pad.axisX.speed = baseSpeedX;
+                pad.axisY.speed = baseSpeedY;
+            }
         }
         catch (Exception)
         {
@@ -111,30 +127,12 @@ internal static class SensitivityTuner
         return pad is not null;
     }
 
-    private static float NativeSpeed(float current, float fps, float tps, float ctrFps, float ctrTps)
+    /// <summary>
+    /// Returns the derived axis speed for the live standard closest to the current speed.
+    /// </summary>
+    private static float NativeSpeed(float current, float std, float ctrStd)
     {
         var ratio = logic!.m_axisRatioByOpenSight;
-        if (logic!.UseFpsAxisSpeed)
-        {
-            tps = fps;
-            ctrTps = ctrFps;
-        }
-
-        var best = fps;
-        var bestDelta = Mathf.Abs(current - ratio * fps);
-        TryCandidate(tps);
-        TryCandidate(ctrFps);
-        TryCandidate(ctrTps);
-        return ratio * best;
-
-        void TryCandidate(float candidate)
-        {
-            var d = Mathf.Abs(current - ratio * candidate);
-            if (d < bestDelta)
-            {
-                best = candidate;
-                bestDelta = d;
-            }
-        }
+        return ratio * (Mathf.Abs(current - ratio * std) <= Mathf.Abs(current - ratio * ctrStd) ? std : ctrStd);
     }
 }
